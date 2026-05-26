@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: light-schedule
+  datasource:
+    url: jdbc:sqlserver://127.0.0.1:1433;databaseName=light_schedule;encrypt=true;trustServerCertificate=true
+    username: sa
+    password: changeMe123!
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  flyway:
+    enabled: ${LIGHT_SCHEDULE_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+
+kingdee:
+  base-url: https://kingdee.example.com
+  app-id: demo-app
+  app-secret: demo-secret
+  writeback-path: /k3cloud/schedule/writeback
+  writeback-status-path: /k3cloud/schedule/writeback/status
+  retry:
+    max-attempts: 3
+    base-delay-seconds: 30
+  executor:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 200
