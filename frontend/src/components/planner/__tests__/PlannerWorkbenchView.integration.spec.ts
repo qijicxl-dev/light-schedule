@@ -73,7 +73,7 @@ describe('PlannerWorkbenchView integration', () => {
     scheduleDraftState.loading = true
     const wrapper = mount(PlannerWorkbenchView)
 
-    expect(wrapper.get('.status-block').text()).toBe('加载中')
+    expect(wrapper.find('[data-testid="planner-skeleton"]').exists()).toBe(true)
     expect(wrapper.find('[role="tablist"]').exists()).toBe(false)
   })
 

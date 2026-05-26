@@ -8,7 +8,31 @@
       </p>
     </header>
 
-    <section v-if="scheduleDraftState.loading" class="status-block status-block--loading">加载中</section>
+    <template v-if="scheduleDraftState.loading">
+      <section class="planner-skeleton panel-card" aria-label="加载中" data-testid="planner-skeleton">
+        <div class="planner-skeleton__header">
+          <div class="planner-skeleton__line planner-skeleton__line--lg" />
+          <div class="planner-skeleton__line planner-skeleton__line--sm" />
+        </div>
+        <div class="planner-skeleton__metrics">
+          <div v-for="n in 4" :key="n" class="planner-skeleton__metric">
+            <div class="planner-skeleton__line planner-skeleton__line--xs" />
+            <div class="planner-skeleton__line planner-skeleton__line--md" />
+          </div>
+        </div>
+        <div class="planner-skeleton__tabs">
+          <div v-for="n in 3" :key="n" class="planner-skeleton__tab" />
+        </div>
+        <div class="planner-skeleton__content">
+          <div v-for="n in 5" :key="n" class="planner-skeleton__row">
+            <div class="planner-skeleton__cell" />
+            <div class="planner-skeleton__cell" />
+            <div class="planner-skeleton__cell" />
+            <div class="planner-skeleton__cell planner-skeleton__cell--short" />
+          </div>
+        </div>
+      </section>
+    </template>
     <section v-else-if="scheduleDraftState.error" class="status-block status-block--error">{{ scheduleDraftState.error }}</section>
     <section v-else-if="isEmpty" class="status-block">暂无排程数据</section>
     <template v-else>
@@ -387,6 +411,126 @@
   color: #dc2626;
 }
 
+/* Skeleton Loading */
+.planner-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.planner-skeleton__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planner-skeleton__line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.planner-skeleton__line--lg {
+  width: 180px;
+  height: 20px;
+}
+
+.planner-skeleton__line--md {
+  width: 120px;
+  height: 16px;
+}
+
+.planner-skeleton__line--sm {
+  width: 260px;
+  height: 12px;
+}
+
+.planner-skeleton__line--xs {
+  width: 60px;
+  height: 10px;
+}
+
+.planner-skeleton__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.planner-skeleton__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.planner-skeleton__tabs {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.planner-skeleton__tab {
+  width: 80px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.planner-skeleton__content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planner-skeleton__row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.planner-skeleton__cell {
+  flex: 1;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.planner-skeleton__cell--short {
+  flex: 0 0 80px;
+}
+
 @media (max-width: 720px) {
   .planner-ribbon,
   .planner-sheet__toolbar,
@@ -405,6 +549,10 @@
 
   .planner-ribbon__actions .button {
     flex: 1;
+  }
+
+  .planner-skeleton__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

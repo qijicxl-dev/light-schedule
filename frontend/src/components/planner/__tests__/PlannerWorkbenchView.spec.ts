@@ -257,7 +257,7 @@ describe('PlannerWorkbenchView', () => {
     expect(publishPlannerDraft).not.toHaveBeenCalled()
   })
 
-  it('基础加载中时显示加载提示', () => {
+  it('基础加载中时显示骨架屏', () => {
     scheduleDraftState.loading = true
     scheduleDraftState.taskPoolItems = []
     scheduleDraftState.scheduledItems = []
@@ -265,7 +265,8 @@ describe('PlannerWorkbenchView', () => {
 
     const wrapper = mount(PlannerWorkbenchView)
 
-    expect(wrapper.text()).toContain('加载中')
+    expect(wrapper.find('[data-testid="planner-skeleton"]').exists()).toBe(true)
+    expect(wrapper.find('.planner-skeleton').exists()).toBe(true)
   })
 
   it('基础加载失败时显示错误信息', () => {
