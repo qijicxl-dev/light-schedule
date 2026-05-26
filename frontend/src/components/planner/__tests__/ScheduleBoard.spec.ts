@@ -389,4 +389,78 @@ describe('ScheduleBoard', () => {
     expect(bar.text()).toContain('2小时')
     expect(wrapper.find('.schedule-board__gantt-ticks').exists()).toBe(true)
   })
+
+  it('点击甘特图任务条显示详情面板', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+    await wrapper.find('[data-testid="gantt-bar-TASK-001"]').trigger('click')
+
+    const panel = wrapper.find('[data-testid="gantt-detail-panel"]')
+    expect(panel.exists()).toBe(true)
+    expect(panel.text()).toContain('TASK-001')
+    expect(panel.text()).toContain('LINE-A')
+    expect(panel.text()).toContain('冲压组')
+    expect(panel.text()).toContain('2026-04-24 08:00')
+    expect(panel.text()).toContain('2026-04-24 10:00')
+    expect(panel.text()).toContain('2小时')
+  })
+
+  it('点击关闭按钮隐藏详情面板', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+    await wrapper.find('[data-testid="gantt-bar-TASK-001"]').trigger('click')
+    expect(wrapper.find('[data-testid="gantt-detail-panel"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="gantt-detail-close"]').trigger('click')
+    expect(wrapper.find('[data-testid="gantt-detail-panel"]').exists()).toBe(false)
+  })
+
+  it('从表格视图切换到甘特视图时不显示详情面板', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    // 默认表格视图不应有详情面板
+    expect(wrapper.find('[data-testid="gantt-detail-panel"]').exists()).toBe(false)
+
+    // 切换到甘特视图也不应有详情面板（未点击任务条）
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+    expect(wrapper.find('[data-testid="gantt-detail-panel"]').exists()).toBe(false)
+  })
 })

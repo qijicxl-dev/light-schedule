@@ -40,6 +40,43 @@
     </div>
 
     <div v-if="items.length > 0" class="schedule-board__content" aria-label="排程数据展示">
+      <!-- Gantt Detail Panel -->
+      <div
+        v-if="selectedGanttTask && viewMode === 'gantt'"
+        class="schedule-board__gantt-detail"
+        data-testid="gantt-detail-panel"
+      >
+        <div class="schedule-board__gantt-detail-header">
+          <strong class="schedule-board__gantt-detail-title">{{ selectedGanttTask.taskId }}</strong>
+          <button
+            class="schedule-board__gantt-detail-close"
+            type="button"
+            data-testid="gantt-detail-close"
+            @click="selectedGanttTask = null"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="schedule-board__gantt-detail-body">
+          <div class="schedule-board__gantt-detail-row">
+            <span class="schedule-board__gantt-detail-label">资源</span>
+            <span class="schedule-board__gantt-detail-value">{{ selectedGanttTask.resourceId }}（{{ selectedGanttTask.resourceGroupName }}）</span>
+          </div>
+          <div class="schedule-board__gantt-detail-row">
+            <span class="schedule-board__gantt-detail-label">开始时间</span>
+            <span class="schedule-board__gantt-detail-value">{{ formatDateTime(selectedGanttTask.startAt) }}</span>
+          </div>
+          <div class="schedule-board__gantt-detail-row">
+            <span class="schedule-board__gantt-detail-label">结束时间</span>
+            <span class="schedule-board__gantt-detail-value">{{ formatDateTime(selectedGanttTask.endAt) }}</span>
+          </div>
+          <div class="schedule-board__gantt-detail-row">
+            <span class="schedule-board__gantt-detail-label">持续时间</span>
+            <span class="schedule-board__gantt-detail-value">{{ formatDuration(selectedGanttTask.startAt, selectedGanttTask.endAt) }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Table View -->
       <template v-if="viewMode === 'table'">
         <div class="schedule-board__table-wrap" aria-label="排程数据表格">
@@ -134,10 +171,10 @@
                     v-for="item in lane.items"
                     :key="item.taskId"
                     class="schedule-board__gantt-bar"
-                    :class="ganttBarClass(item.taskId)"
+                    :class="[ganttBarClass(item.taskId), { 'schedule-board__gantt-bar--active': selectedGanttTask?.taskId === item.taskId }]"
                     :style="ganttBarStyle(item)"
                     :data-testid="`gantt-bar-${item.taskId}`"
-                    :title="`${item.taskId}: ${formatDateTime(item.startAt)} - ${formatDateTime(item.endAt)}`"
+                    @click="selectedGanttTask = item"
                   >
                     <span class="schedule-board__gantt-bar-label">{{ item.taskId }}</span>
                     <span class="schedule-board__gantt-bar-time">{{ formatDuration(item.startAt, item.endAt) }}</span>
@@ -457,6 +494,95 @@
   font-size: 0.7rem;
 }
 
+.schedule-board__gantt-bar--active {
+  outline: 2px solid #1e293b;
+  outline-offset: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Gantt Detail Panel */
+.schedule-board__gantt-detail {
+  margin-bottom: 12px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.schedule-board__gantt-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(219, 234, 254, 0.6);
+  border-bottom: 1px solid rgba(191, 219, 254, 0.6);
+}
+
+.schedule-board__gantt-detail-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.schedule-board__gantt-detail-close {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.schedule-board__gantt-detail-close:hover {
+  background: rgba(226, 232, 240, 0.8);
+  color: #1e293b;
+}
+
+.schedule-board__gantt-detail-body {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.schedule-board__gantt-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.schedule-board__gantt-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.schedule-board__gantt-detail-value {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
 .button--sm {
   min-height: 24px;
   padding: 0 8px;
@@ -509,6 +635,7 @@ const props = defineProps<{
 }>()
 
 const viewMode = ref<ViewMode>('table')
+const selectedGanttTask = ref<ScheduledItem | null>(null)
 const sortKey = ref<SortKey | null>(null)
 const sortOrder = ref<SortOrder>('asc')
 
