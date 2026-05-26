@@ -6441,3 +6441,148 @@ test('计划员重新进入工作台后不会看到上一轮回写结果残留',
   await expect(reopenedDialog.getByText('暂无回写结果')).toBeVisible()
   await expect(reopenedDialog.getByText('结果版本：draft-2')).toHaveCount(0)
 })
+
+test('计划员可以在排程画板切换甘特图视图', async ({ page }) => {
+  await page.route('**/api/task-pool', async (route) => {
+    await route.fulfill({
+      json: [
+        {
+          workOrderCode: 'WO-001',
+          dueAt: '2026-04-24T08:00:00Z',
+          urgent: false,
+          materialRisk: 'low',
+          readiness: 'ready'
+        }
+      ]
+    })
+  })
+
+  await page.route('**/api/schedules/draft', async (route) => {
+    await route.fulfill({
+      json: {
+        draftId: 'draft-1',
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+  })
+
+  await page.goto('/planner')
+  await page.getByRole('tab', { name: '排程画板' }).click()
+
+  // 默认表格视图
+  await expect(page.locator('table')).toBeVisible()
+  await expect(page.locator('.schedule-board__gantt')).toHaveCount(0)
+
+  // 切换到甘特图
+  await page.getByTestId('view-mode-gantt').click()
+  await expect(page.locator('.schedule-board__gantt')).toBeVisible()
+  await expect(page.locator('table')).toHaveCount(0)
+  await expect(page.getByTestId('gantt-bar-TASK-001')).toBeVisible()
+
+  // 切换回表格
+  await page.getByTestId('view-mode-table').click()
+  await expect(page.locator('table')).toBeVisible()
+  await expect(page.locator('.schedule-board__gantt')).toHaveCount(0)
+})
+
+test('计划员可以在排程画板使用筛选功能', async ({ page }) => {
+  await page.route('**/api/task-pool', async (route) => {
+    await route.fulfill({
+      json: [
+        {
+          workOrderCode: 'WO-001',
+          dueAt: '2026-04-24T08:00:00Z',
+          urgent: false,
+          materialRisk: 'low',
+          readiness: 'ready'
+        }
+      ]
+    })
+  })
+
+  await page.route('**/api/schedules/draft', async (route) => {
+    await route.fulfill({
+      json: {
+        draftId: 'draft-1',
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          },
+          {
+            taskId: 'TASK-002',
+            resourceId: 'LINE-B',
+            resourceGroupName: '装配组',
+            startAt: '2026-04-24T10:00:00Z',
+            endAt: '2026-04-24T11:00:00Z'
+          }
+        ]
+      }
+    })
+  })
+
+  await page.goto('/planner')
+  await page.getByRole('tab', { name: '排程画板' }).click()
+
+  await expect(page.getByTestId('schedule-row-TASK-001')).toBeVisible()
+  await expect(page.getByTestId('schedule-row-TASK-002')).toBeVisible()
+
+  // 筛选 LINE-B
+  await page.getByTestId('schedule-filter-input').fill('LINE-B')
+  await expect(page.getByTestId('schedule-row-TASK-002')).toBeVisible()
+  await expect(page.getByTestId('schedule-row-TASK-001')).toHaveCount(0)
+
+  // 清除筛选
+  await page.getByTestId('schedule-filter-clear').click()
+  await expect(page.getByTestId('schedule-row-TASK-001')).toBeVisible()
+  await expect(page.getByTestId('schedule-row-TASK-002')).toBeVisible()
+})
+
+test('计划员可以在排程画板看到资源负载概览', async ({ page }) => {
+  await page.route('**/api/task-pool', async (route) => {
+    await route.fulfill({
+      json: [
+        {
+          workOrderCode: 'WO-001',
+          dueAt: '2026-04-24T08:00:00Z',
+          urgent: false,
+          materialRisk: 'low',
+          readiness: 'ready'
+        }
+      ]
+    })
+  })
+
+  await page.route('**/api/schedules/draft', async (route) => {
+    await route.fulfill({
+      json: {
+        draftId: 'draft-1',
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+  })
+
+  await page.goto('/planner')
+
+  await expect(page.getByLabel('资源负载概览')).toBeVisible()
+  await expect(page.getByLabel('资源负载概览').locator('.planner-ribbon__load-name').filter({ hasText: 'LINE-A' })).toBeVisible()
+})
