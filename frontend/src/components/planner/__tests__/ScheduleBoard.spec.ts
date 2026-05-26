@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ScheduleBoard from '@/components/planner/ScheduleBoard.vue'
 
@@ -462,5 +462,60 @@ describe('ScheduleBoard', () => {
     // 切换到甘特视图也不应有详情面板（未点击任务条）
     await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
     expect(wrapper.find('[data-testid="gantt-detail-panel"]').exists()).toBe(false)
+  })
+
+  it('有排程数据时显示导出按钮', () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    expect(wrapper.find('[data-testid="export-schedule"]').exists()).toBe(true)
+  })
+
+  it('无排程数据时不显示导出按钮', () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: { items: [] }
+    })
+
+    expect(wrapper.find('[data-testid="export-schedule"]').exists()).toBe(false)
+  })
+
+  it('点击导出按钮调用 URL.createObjectURL 并清理', async () => {
+    const createObjectURL = vi.fn(() => 'blob:mock')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    const button = wrapper.find('[data-testid="export-schedule"]')
+    expect(button.exists()).toBe(true)
+
+    await button.trigger('click')
+
+    expect(createObjectURL).toHaveBeenCalled()
+    expect(revokeObjectURL).toHaveBeenCalled()
+    vi.unstubAllGlobals()
   })
 })

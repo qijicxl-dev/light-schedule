@@ -35,6 +35,15 @@
         >
           清除排序
         </button>
+        <button
+          v-if="items.length > 0"
+          class="button button--secondary button--sm"
+          type="button"
+          data-testid="export-schedule"
+          @click="exportSchedule"
+        >
+          导出
+        </button>
         <span class="badge badge--info">{{ items.length }} 条排程</span>
       </div>
     </div>
@@ -813,6 +822,39 @@ function formatDateTime(value: string) {
   const h = String(date.getUTCHours()).padStart(2, '0')
   const min = String(date.getUTCMinutes()).padStart(2, '0')
   return `${y}-${m}-${d} ${h}:${min}`
+}
+
+function exportSchedule() {
+  if (props.items.length === 0) return
+
+  const headers = ['任务编号', '资源编号', '资源组', '开始时间', '结束时间', '持续时间']
+  const rows = props.items.map((item) => [
+    item.taskId,
+    item.resourceId,
+    item.resourceGroupName,
+    formatDateTime(item.startAt),
+    formatDateTime(item.endAt),
+    formatDuration(item.startAt, item.endAt)
+  ])
+
+  const escapeCsv = (value: string) => {
+    const str = String(value)
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const csvContent = [headers, ...rows].map((row) => row.map(escapeCsv).join(',')).join('\r\n')
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  link.href = URL.createObjectURL(blob)
+  link.download = `排程结果-${timestamp}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(link.href)
 }
 
 function formatDuration(startAt: string, endAt: string) {
