@@ -1182,6 +1182,42 @@ describe('PlannerWorkbenchView', () => {
     expect(publishDialog.text()).toContain('回写说明：writeback_failed')
   })
 
+  it('有排程数据时显示资源负载概览', async () => {
+    scheduleDraftState.scheduledItems = [
+      {
+        taskId: 'TASK-001',
+        resourceId: 'LINE-A',
+        resourceGroupName: '冲压组',
+        startAt: '2026-04-24T08:00:00Z',
+        endAt: '2026-04-24T10:00:00Z'
+      },
+      {
+        taskId: 'TASK-002',
+        resourceId: 'LINE-B',
+        resourceGroupName: '装配组',
+        startAt: '2026-04-24T09:00:00Z',
+        endAt: '2026-04-24T10:00:00Z'
+      }
+    ]
+
+    const wrapper = mount(PlannerWorkbenchView)
+    await flushPromises()
+
+    const loadSection = wrapper.find('[aria-label="资源负载概览"]')
+    expect(loadSection.exists()).toBe(true)
+    expect(loadSection.text()).toContain('LINE-A')
+    expect(loadSection.text()).toContain('LINE-B')
+  })
+
+  it('无排程数据时不显示资源负载概览', async () => {
+    scheduleDraftState.scheduledItems = []
+
+    const wrapper = mount(PlannerWorkbenchView)
+    await flushPromises()
+
+    expect(wrapper.find('[aria-label="资源负载概览"]').exists()).toBe(false)
+  })
+
   it('回写重试中后重新打开回写弹窗时会保留重试中语义', async () => {
     scheduleDraftState.publishResult = {
       draftId: 'draft-1',

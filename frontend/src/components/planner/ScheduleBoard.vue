@@ -44,11 +44,34 @@
         >
           导出
         </button>
-        <span class="badge badge--info">{{ items.length }} 条排程</span>
+        <button
+          v-if="items.length > 0"
+          class="button button--secondary button--sm schedule-board__print-btn"
+          type="button"
+          data-testid="print-schedule"
+          @click="printSchedule"
+        >
+          打印
+        </button>
+        <span class="badge badge--info">{{ filteredItems.length }} 条排程</span>
       </div>
     </div>
 
     <div v-if="items.length > 0" class="schedule-board__content" aria-label="排程数据展示">
+      <!-- Search / Filter -->
+      <div class="schedule-board__filter" aria-label="排程筛选">
+        <input
+          v-model="filterText"
+          type="text"
+          class="schedule-board__filter-input"
+          placeholder="搜索任务编号或资源..."
+          data-testid="schedule-filter-input"
+          aria-label="搜索任务编号或资源"
+        />
+        <span v-if="filterText" class="schedule-board__filter-clear" data-testid="schedule-filter-clear" @click="filterText = ''">✕</span>
+      </div>
+
+      <!-- Gantt Detail Panel -->
       <!-- Gantt Detail Panel -->
       <div
         v-if="selectedGanttTask && viewMode === 'gantt'"
@@ -180,10 +203,15 @@
                     v-for="item in lane.items"
                     :key="item.taskId"
                     class="schedule-board__gantt-bar"
-                    :class="[ganttBarClass(item.taskId), { 'schedule-board__gantt-bar--active': selectedGanttTask?.taskId === item.taskId }]"
+                    :class="[
+                      ganttBarClass(item.taskId),
+                      { 'schedule-board__gantt-bar--active': selectedGanttTask?.taskId === item.taskId },
+                      { 'schedule-board__gantt-bar--dragging': draggingTaskId === item.taskId }
+                    ]"
                     :style="ganttBarStyle(item)"
                     :data-testid="`gantt-bar-${item.taskId}`"
                     @click="selectedGanttTask = item"
+                    @mousedown="startDrag($event, item)"
                   >
                     <span class="schedule-board__gantt-bar-label">{{ item.taskId }}</span>
                     <span class="schedule-board__gantt-bar-time">{{ formatDuration(item.startAt, item.endAt) }}</span>
@@ -204,6 +232,52 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.schedule-board__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.schedule-board__filter-input {
+  flex: 1;
+  min-height: 32px;
+  padding: 0 28px 0 12px;
+  border: 1px solid rgba(203, 213, 225, 0.92);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: #334155;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-board__filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.schedule-board__filter-clear {
+  position: absolute;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(203, 213, 225, 0.6);
+  color: #64748b;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.schedule-board__filter-clear:hover {
+  background: rgba(148, 163, 184, 0.5);
+  color: #1e293b;
 }
 
 .schedule-board__header {
@@ -509,6 +583,12 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.schedule-board__gantt-bar--dragging {
+  cursor: grabbing;
+  z-index: 10;
+  filter: brightness(1.12);
+}
+
 /* Gantt Detail Panel */
 .schedule-board__gantt-detail {
   margin-bottom: 12px;
@@ -629,6 +709,62 @@
     font-size: 0.7rem;
   }
 }
+
+@media print {
+  .schedule-board__header-actions,
+  .schedule-board__view-toggle,
+  .schedule-board__filter,
+  .schedule-board__gantt-detail,
+  .schedule-board__gantt-detail-close,
+  .schedule-board__print-btn,
+  .schedule-board__sort-icon,
+  .schedule-board__th-content {
+    display: none !important;
+  }
+
+  .schedule-board {
+    gap: 8px;
+    border: none;
+    box-shadow: none;
+  }
+
+  .schedule-board__table-wrap,
+  .schedule-board__gantt {
+    border: 1px solid #cbd5e1;
+    border-radius: 0;
+  }
+
+  .schedule-board__table thead th {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+    border-bottom: 1px solid #94a3b8;
+  }
+
+  .schedule-board__group-row td {
+    background: #f1f5f9 !important;
+  }
+
+  .schedule-board__data-row:hover {
+    background: transparent !important;
+  }
+
+  .schedule-board__gantt-bar {
+    box-shadow: none !important;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
+  .schedule-board__gantt-header {
+    background: #e2e8f0 !important;
+  }
+
+  .schedule-board__gantt-row:nth-child(even) {
+    background: transparent !important;
+  }
+
+  .schedule-board__empty {
+    border: 1px solid #cbd5e1;
+  }
+}
 </style>
 
 <script setup lang="ts">
@@ -643,10 +779,18 @@ const props = defineProps<{
   items: ScheduledItem[]
 }>()
 
+const emit = defineEmits<{
+  (e: 'update-task-time', payload: { taskId: string; newStartAt: string; newEndAt: string }): void
+}>()
+
 const viewMode = ref<ViewMode>('table')
 const selectedGanttTask = ref<ScheduledItem | null>(null)
+const filterText = ref('')
 const sortKey = ref<SortKey | null>(null)
 const sortOrder = ref<SortOrder>('asc')
+const draggingTaskId = ref<string | null>(null)
+const dragStartX = ref(0)
+const dragItem = ref<ScheduledItem | null>(null)
 
 const columns: { key: SortKey; label: string }[] = [
   { key: 'taskId', label: '任务编号' },
@@ -686,15 +830,26 @@ function getDurationMinutes(item: ScheduledItem): number {
   return Math.max(new Date(item.endAt).getTime() - new Date(item.startAt).getTime(), 0) / (1000 * 60)
 }
 
+const filteredItems = computed(() => {
+  const text = filterText.value.trim().toLowerCase()
+  if (!text) return props.items
+  return props.items.filter(
+    (item) =>
+      item.taskId.toLowerCase().includes(text) ||
+      item.resourceId.toLowerCase().includes(text) ||
+      item.resourceGroupName.toLowerCase().includes(text)
+  )
+})
+
 const sortedItems = computed(() => {
   if (!sortKey.value) {
-    return props.items
+    return filteredItems.value
   }
 
   const key = sortKey.value
   const order = sortOrder.value === 'asc' ? 1 : -1
 
-  return [...props.items].sort((left, right) => {
+  return [...filteredItems.value].sort((left, right) => {
     if (key === 'duration') {
       const leftVal = getDurationMinutes(left)
       const rightVal = getDurationMinutes(right)
@@ -717,7 +872,7 @@ const sortedItems = computed(() => {
 const resourceLanes = computed(() => {
   const lanes = new Map<string, { resourceId: string; resourceGroupName: string; items: ScheduledItem[] }>()
 
-  props.items.forEach((item) => {
+  filteredItems.value.forEach((item) => {
     const lane = lanes.get(item.resourceId)
     if (lane) {
       lane.items.push(item)
@@ -739,10 +894,10 @@ const resourceLanes = computed(() => {
 
 /* Gantt computed */
 const ganttTimeRange = computed(() => {
-  if (props.items.length === 0) {
+  if (filteredItems.value.length === 0) {
     return { min: 0, max: 0, totalMs: 1 }
   }
-  const times = props.items.map((item) => ({
+  const times = filteredItems.value.map((item) => ({
     start: new Date(item.startAt).getTime(),
     end: new Date(item.endAt).getTime()
   }))
@@ -791,7 +946,7 @@ const ganttTicks = computed(() => {
 const taskColorMap = computed(() => {
   const colors = ['primary', 'secondary', 'accent', 'danger'] as const
   const map = new Map<string, typeof colors[number]>()
-  props.items.forEach((item, index) => {
+  filteredItems.value.forEach((item, index) => {
     map.set(item.taskId, colors[index % colors.length])
   })
   return map
@@ -855,6 +1010,77 @@ function exportSchedule() {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(link.href)
+}
+
+function printSchedule() {
+  window.print()
+}
+
+function startDrag(event: MouseEvent, item: ScheduledItem) {
+  if (viewMode.value !== 'gantt') return
+  event.preventDefault()
+  draggingTaskId.value = item.taskId
+  dragStartX.value = event.clientX
+  dragItem.value = item
+
+  document.addEventListener('mousemove', onDragMove)
+  document.addEventListener('mouseup', onDragEnd)
+}
+
+function onDragMove(event: MouseEvent) {
+  if (!draggingTaskId.value || !dragItem.value) return
+  // 拖拽过程中不做实时更新，只在mouseup时计算
+  // 可以在这里添加视觉反馈
+}
+
+function onDragEnd(event: MouseEvent) {
+  document.removeEventListener('mousemove', onDragMove)
+  document.removeEventListener('mouseup', onDragEnd)
+
+  if (!draggingTaskId.value || !dragItem.value) {
+    draggingTaskId.value = null
+    dragItem.value = null
+    return
+  }
+
+  const timelineEl = document.querySelector('.schedule-board__gantt-timeline') as HTMLElement | null
+  if (!timelineEl) {
+    draggingTaskId.value = null
+    dragItem.value = null
+    return
+  }
+
+  const deltaPx = event.clientX - dragStartX.value
+  const timelineWidth = timelineEl.clientWidth
+  if (timelineWidth <= 0) {
+    draggingTaskId.value = null
+    dragItem.value = null
+    return
+  }
+
+  const { totalMs } = ganttTimeRange.value
+  const deltaMs = (deltaPx / timelineWidth) * totalMs
+
+  if (Math.abs(deltaMs) < 60 * 1000) {
+    // 忽略小于1分钟的拖拽
+    draggingTaskId.value = null
+    dragItem.value = null
+    return
+  }
+
+  const item = dragItem.value
+  const duration = new Date(item.endAt).getTime() - new Date(item.startAt).getTime()
+  const newStartAt = new Date(new Date(item.startAt).getTime() + deltaMs).toISOString().replace('.000', '')
+  const newEndAt = new Date(new Date(item.startAt).getTime() + deltaMs + duration).toISOString().replace('.000', '')
+
+  emit('update-task-time', {
+    taskId: item.taskId,
+    newStartAt,
+    newEndAt
+  })
+
+  draggingTaskId.value = null
+  dragItem.value = null
 }
 
 function formatDuration(startAt: string, endAt: string) {

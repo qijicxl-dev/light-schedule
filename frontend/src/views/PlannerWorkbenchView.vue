@@ -56,6 +56,22 @@
             </article>
           </div>
         </div>
+        <div v-if="resourceUtilizations.length > 0" class="planner-ribbon__resource-load" aria-label="资源负载概览">
+          <div v-for="res in resourceUtilizations" :key="res.resourceId" class="planner-ribbon__load-item">
+            <span class="planner-ribbon__load-name">{{ res.resourceId }}</span>
+            <div class="planner-ribbon__load-bar-bg">
+              <div
+                class="planner-ribbon__load-bar-fill"
+                :class="{
+                  'planner-ribbon__load-bar-fill--high': res.rate >= 80,
+                  'planner-ribbon__load-bar-fill--medium': res.rate >= 50 && res.rate < 80
+                }"
+                :style="{ width: `${res.rate}%` }"
+              />
+            </div>
+            <span class="planner-ribbon__load-value" :class="{ 'planner-ribbon__load-value--high': res.rate >= 80 }">{{ res.rate }}%</span>
+          </div>
+        </div>
       </section>
 
       <section v-if="activeRibbonMenu === 'schedule'" class="planner-sheet panel-card" aria-label="派工工作表容器">
@@ -105,7 +121,7 @@
             role="tabpanel"
             aria-labelledby="planner-tab-scheduleBoard"
           >
-            <ScheduleBoard :items="scheduleDraftState.scheduledItems" />
+            <ScheduleBoard :items="scheduleDraftState.scheduledItems" @update-task-time="handleUpdateTaskTime" />
           </section>
           <section
             v-else
@@ -310,6 +326,67 @@
   }
 }
 
+.planner-ribbon__resource-load {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.planner-ribbon__load-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
+  max-width: 320px;
+}
+
+.planner-ribbon__load-name {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.planner-ribbon__load-bar-bg {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(203, 213, 225, 0.5);
+  overflow: hidden;
+}
+
+.planner-ribbon__load-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 0.4s ease;
+}
+
+.planner-ribbon__load-bar-fill--medium {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.planner-ribbon__load-bar-fill--high {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.planner-ribbon__load-value {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+  flex: 0 0 auto;
+  min-width: 36px;
+  text-align: right;
+}
+
+.planner-ribbon__load-value--high {
+  color: #dc2626;
+}
+
 @media (max-width: 720px) {
   .planner-ribbon,
   .planner-sheet__toolbar,
@@ -406,6 +483,44 @@ const publishActionLabel = computed(() =>
     ? '查看回写状态'
     : '确认回写'
 )
+
+// 资源利用率：每个资源的任务总时长 / 时间窗口总时长
+const resourceUtilizations = computed(() => {
+  const items = scheduleDraftState.scheduledItems
+  if (items.length === 0) return []
+
+  const starts = items.map((i) => new Date(i.startAt).getTime())
+  const ends = items.map((i) => new Date(i.endAt).getTime())
+  const windowStart = Math.min(...starts)
+  const windowEnd = Math.max(...ends)
+  const windowDuration = windowEnd - windowStart
+  if (windowDuration <= 0) return []
+
+  const byResource = new Map<string, { resourceId: string; resourceGroupName: string; occupiedMs: number }>()
+  items.forEach((item) => {
+    const existing = byResource.get(item.resourceId)
+    const duration = new Date(item.endAt).getTime() - new Date(item.startAt).getTime()
+    if (existing) {
+      existing.occupiedMs += duration
+    } else {
+      byResource.set(item.resourceId, {
+        resourceId: item.resourceId,
+        resourceGroupName: item.resourceGroupName,
+        occupiedMs: duration
+      })
+    }
+  })
+
+  return Array.from(byResource.values()).map((r) => ({
+    ...r,
+    rate: Math.min(Math.round((r.occupiedMs / windowDuration) * 100), 100)
+  }))
+})
+
+const highestUtilization = computed(() => {
+  if (resourceUtilizations.value.length === 0) return null
+  return resourceUtilizations.value.reduce((max, cur) => (cur.rate > max.rate ? cur : max))
+})
 
 // 风险侧栏直接复用急单受影响任务映射结果，避免建议文本和资源组上下文分离。
 const affectedScheduledItems = computed(() =>
@@ -530,6 +645,17 @@ async function handleDeleteWorkOrder(workOrderCode: string) {
 
 function handleAddToSchedule(task: TaskPoolItem) {
   addTaskToSchedule(task)
+}
+
+function handleUpdateTaskTime(payload: { taskId: string; newStartAt: string; newEndAt: string }) {
+  const index = scheduleDraftState.scheduledItems.findIndex((item) => item.taskId === payload.taskId)
+  if (index === -1) return
+
+  scheduleDraftState.scheduledItems[index] = {
+    ...scheduleDraftState.scheduledItems[index],
+    startAt: payload.newStartAt,
+    endAt: payload.newEndAt
+  }
 }
 
 function handleApplySuggestion(suggestion: { action: string; reason: string }) {
