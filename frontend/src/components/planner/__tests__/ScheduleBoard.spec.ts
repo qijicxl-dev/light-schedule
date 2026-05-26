@@ -653,4 +653,78 @@ describe('ScheduleBoard', () => {
     const paths = svg.findAll('path')
     expect(paths.length).toBeGreaterThan(0)
   })
+
+  it('甘特图视图显示缩放控制按钮', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    expect(wrapper.find('[data-testid="gantt-zoom-in"]').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="gantt-zoom-in"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="gantt-zoom-out"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="gantt-zoom-reset"]').exists()).toBe(true)
+  })
+
+  it('点击放大按钮增加缩放级别', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+    const initialScale = (wrapper.vm as any).ganttScale
+
+    await wrapper.find('[data-testid="gantt-zoom-in"]').trigger('click')
+    const newScale = (wrapper.vm as any).ganttScale
+
+    expect(newScale).toBeGreaterThan(initialScale)
+  })
+
+  it('点击缩小按钮降低缩放级别', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          }
+        ]
+      }
+    })
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+
+    await wrapper.find('[data-testid="gantt-zoom-in"]').trigger('click')
+    const zoomedScale = (wrapper.vm as any).ganttScale
+
+    await wrapper.find('[data-testid="gantt-zoom-out"]').trigger('click')
+    const reducedScale = (wrapper.vm as any).ganttScale
+
+    expect(reducedScale).toBeLessThan(zoomedScale)
+  })
 })

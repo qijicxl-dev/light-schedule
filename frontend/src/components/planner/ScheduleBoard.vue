@@ -189,6 +189,37 @@
                   {{ tick.label }}
                 </span>
               </div>
+              <div class="schedule-board__gantt-zoom">
+                <button
+                  class="schedule-board__gantt-zoom-btn"
+                  type="button"
+                  data-testid="gantt-zoom-out"
+                  :disabled="ganttScale <= MIN_GANTT_SCALE"
+                  @click="zoomOut"
+                >
+                  −
+                </button>
+                <span class="schedule-board__gantt-zoom-label"
+                  >{{ Math.round(ganttScale * 100) }}%</span
+                >
+                <button
+                  class="schedule-board__gantt-zoom-btn"
+                  type="button"
+                  data-testid="gantt-zoom-in"
+                  :disabled="ganttScale >= MAX_GANTT_SCALE"
+                  @click="zoomIn"
+                >
+                  +
+                </button>
+                <button
+                  class="schedule-board__gantt-zoom-btn schedule-board__gantt-zoom-btn--reset"
+                  type="button"
+                  data-testid="gantt-zoom-reset"
+                  @click="resetZoom"
+                >
+                  重置
+                </button>
+              </div>
             </div>
           </div>
           <div class="schedule-board__gantt-body">
@@ -524,6 +555,52 @@
   white-space: nowrap;
 }
 
+.schedule-board__gantt-zoom {
+  position: absolute;
+  top: 2px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+}
+
+.schedule-board__gantt-zoom-btn {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  background: #fff;
+  border: 1px solid rgba(203, 213, 225, 0.92);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.schedule-board__gantt-zoom-btn:hover:not(:disabled) {
+  background: rgba(241, 245, 249, 0.8);
+  border-color: #94a3b8;
+}
+
+.schedule-board__gantt-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.schedule-board__gantt-zoom-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  min-width: 36px;
+  text-align: center;
+}
+
+.schedule-board__gantt-zoom-btn--reset {
+  font-weight: 500;
+  font-size: 0.7rem;
+}
+
 .schedule-board__gantt-body {
   display: flex;
   flex-direction: column;
@@ -822,6 +899,25 @@ const sortOrder = ref<SortOrder>('asc')
 const draggingTaskId = ref<string | null>(null)
 const dragStartX = ref(0)
 const dragItem = ref<ScheduledItem | null>(null)
+const ganttScale = ref(1)
+const MIN_GANTT_SCALE = 0.25
+const MAX_GANTT_SCALE = 8
+
+function zoomIn() {
+  if (ganttScale.value < MAX_GANTT_SCALE) {
+    ganttScale.value = Math.min(MAX_GANTT_SCALE, ganttScale.value * 2)
+  }
+}
+
+function zoomOut() {
+  if (ganttScale.value > MIN_GANTT_SCALE) {
+    ganttScale.value = Math.max(MIN_GANTT_SCALE, ganttScale.value / 2)
+  }
+}
+
+function resetZoom() {
+  ganttScale.value = 1
+}
 
 const columns: { key: SortKey; label: string }[] = [
   { key: 'taskId', label: '任务编号' },
@@ -932,11 +1028,21 @@ const ganttTimeRange = computed(() => {
     start: new Date(item.startAt).getTime(),
     end: new Date(item.endAt).getTime()
   }))
-  const min = Math.min(...times.map((t) => t.start))
-  const max = Math.max(...times.map((t) => t.end))
+  const dataMin = Math.min(...times.map((t) => t.start))
+  const dataMax = Math.max(...times.map((t) => t.end))
   // Add 10% padding on each side for visual breathing room
-  const padding = (max - min) * 0.1
-  return { min: min - padding, max: max + padding, totalMs: max - min + padding * 2 }
+  const padding = (dataMax - dataMin) * 0.1
+  const baseMin = dataMin - padding
+  const baseMax = dataMax + padding
+  const baseRange = baseMax - baseMin
+
+  // Apply scale: scale > 1 zooms in (narrows visible range)
+  const displayRange = baseRange / ganttScale.value
+  const center = (baseMin + baseMax) / 2
+  const min = center - displayRange / 2
+  const max = center + displayRange / 2
+
+  return { min, max, totalMs: max - min }
 })
 
 const ganttLanes = computed(() => resourceLanes.value)
