@@ -388,7 +388,8 @@ describe('scheduleDraft', () => {
         resourceId: 'LINE-A',
         resourceGroupName: '冲压组',
         startAt: '2026-04-24T10:00:00Z',
-        endAt: '2026-04-24T12:00:00Z'
+        endAt: '2026-04-24T12:00:00Z',
+        dependencyTaskIds: []
       }
     ])
   })
@@ -614,7 +615,8 @@ describe('scheduleDraft', () => {
         resourceId: 'LINE-A',
         resourceGroupName: '默认资源组',
         startAt: '2026-04-25T09:30:00Z',
-        endAt: '2026-04-25T11:30:00Z'
+        endAt: '2026-04-25T11:30:00Z',
+        dependencyTaskIds: []
       }
     ])
   })

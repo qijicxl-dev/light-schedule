@@ -12,7 +12,7 @@ class KingdeeWritebackPayloadMapperTest {
     void shouldMapScheduledItemsToKingdeePayload() {
         KingdeeWritebackPayload payload = new KingdeeWritebackPayloadMapper().map(
                 "draft-1",
-                List.of(new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")));
+                List.of(new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())));
 
         assertThat(payload.draftId()).isEqualTo("draft-1");
         assertThat(payload.items()).hasSize(1);

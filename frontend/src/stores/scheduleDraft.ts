@@ -15,6 +15,7 @@ export interface ScheduledItem {
   resourceGroupName: string
   startAt: string
   endAt: string
+  dependencyTaskIds?: string[]
 }
 
 export interface Suggestion {
@@ -129,7 +130,8 @@ export function addTaskToSchedule(task: TaskPoolItem) {
       resourceId,
       resourceGroupName,
       startAt,
-      endAt
+      endAt,
+      dependencyTaskIds: []
     }
   ]
 }

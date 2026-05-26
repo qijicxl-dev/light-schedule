@@ -199,6 +199,20 @@
                   <div class="schedule-board__gantt-resource-meta">{{ lane.resourceGroupName }} · {{ lane.items.length }} 个任务</div>
                 </div>
                 <div class="schedule-board__gantt-timeline">
+                  <svg class="schedule-board__gantt-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <path
+                      v-for="(link, index) in ganttDependencyLinks"
+                      :key="index"
+                      :d="link.path"
+                      class="schedule-board__gantt-dependency"
+                      marker-end="url(#arrowhead)"
+                    />
+                    <defs>
+                      <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="#94a3b8" />
+                      </marker>
+                    </defs>
+                  </svg>
                   <div
                     v-for="item in lane.items"
                     :key="item.taskId"
@@ -477,6 +491,23 @@
   position: relative;
   min-width: 400px;
   padding: 0 12px;
+}
+
+.schedule-board__gantt-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.schedule-board__gantt-dependency {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 0.3;
+  opacity: 0.75;
 }
 
 .schedule-board__gantt-ticks {
@@ -941,6 +972,52 @@ const ganttTicks = computed(() => {
     }
   }
   return ticks
+})
+
+const ganttDependencyLinks = computed(() => {
+  const links: { path: string }[] = []
+  const { min, totalMs } = ganttTimeRange.value
+  const rowHeight = 56 // matches .schedule-board__gantt-row min-height
+  const laneMap = new Map<string, number>()
+  ganttLanes.value.forEach((lane, index) => {
+    laneMap.set(lane.resourceId, index)
+  })
+
+  filteredItems.value.forEach((item) => {
+    if (!item.dependencyTaskIds || item.dependencyTaskIds.length === 0) return
+    const targetLaneIndex = laneMap.get(item.resourceId)
+    if (targetLaneIndex === undefined) return
+    const targetStart = new Date(item.startAt).getTime()
+    const targetY = targetLaneIndex * rowHeight + rowHeight / 2
+    const targetX = ((targetStart - min) / totalMs) * 100
+
+    item.dependencyTaskIds.forEach((depId) => {
+      const dep = filteredItems.value.find((i) => i.taskId === depId)
+      if (!dep) return
+      const sourceLaneIndex = laneMap.get(dep.resourceId)
+      if (sourceLaneIndex === undefined) return
+      const sourceEnd = new Date(dep.endAt).getTime()
+      const sourceY = sourceLaneIndex * rowHeight + rowHeight / 2
+      const sourceX = ((sourceEnd - min) / totalMs) * 100
+
+      // Normalize to 0-100 viewBox: y needs to be scaled to match x percentage
+      // Since SVG uses percentage-based viewBox, we need a common scale.
+      // Instead, let's use a large viewBox and calculate pixel positions.
+      // Actually, easier: use viewBox="0 0 100 {totalHeight}" and scale y accordingly.
+      // Let's keep viewBox="0 0 100 100" and normalize y as percentage of total height.
+      const totalHeight = ganttLanes.value.length * rowHeight
+      const sx = Math.max(0, Math.min(100, sourceX))
+      const sy = (sourceY / totalHeight) * 100
+      const tx = Math.max(0, Math.min(100, targetX))
+      const ty = (targetY / totalHeight) * 100
+
+      const midX = (sx + tx) / 2
+      const path = `M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ty}, ${tx} ${ty}`
+      links.push({ path })
+    })
+  })
+
+  return links
 })
 
 const taskColorMap = computed(() => {

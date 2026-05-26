@@ -2,6 +2,7 @@ package com.lightschedule.web;
 
 import com.lightschedule.modules.replan.UrgentReplanService;
 import com.lightschedule.modules.scheduling.InitialSchedulingService.ScheduledItem;
+import java.util.List;
 import java.util.stream.Stream;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,12 +25,13 @@ public class ReplanController {
                 request.urgentTaskId(),
                 Stream.concat(
                                 request.items().stream()
-                                        .map(item -> new ScheduledItem(item.taskId(), item.resourceId(), item.startAt(), item.endAt())),
+                                        .map(item -> new ScheduledItem(item.taskId(), item.resourceId(), item.startAt(), item.endAt(), item.dependencyTaskIds())),
                                 Stream.of(new ScheduledItem(
                                         request.urgentTaskId(),
                                         request.urgentResourceId(),
                                         request.urgentStartAt(),
-                                        request.urgentEndAt())))
+                                        request.urgentEndAt(),
+                                        List.of())))
                         .toList());
         // 在这里转换建议项，保持 HTTP 响应结构由 web 层自己定义。
         return new UrgentReplanResponse(

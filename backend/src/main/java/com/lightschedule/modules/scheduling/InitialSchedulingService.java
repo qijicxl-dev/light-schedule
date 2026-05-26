@@ -17,7 +17,7 @@ public class InitialSchedulingService {
                     Instant startAt = cursor[0];
                     Instant endAt = startAt.plus(task.requiredMinutes(), ChronoUnit.MINUTES);
                     cursor[0] = endAt;
-                    return new ScheduledItem(task.taskId(), task.resourceId(), startAt.toString(), endAt.toString());
+                    return new ScheduledItem(task.taskId(), task.resourceId(), startAt.toString(), endAt.toString(), task.dependencyTaskIds());
                 })
                 .toList();
         return new ScheduleResult(items);
@@ -29,7 +29,7 @@ public class InitialSchedulingService {
     public record Task(String taskId, String resourceId, int requiredMinutes, List<String> dependencyTaskIds) {
     }
 
-    public record ScheduledItem(String taskId, String resourceId, String startAt, String endAt) {
+    public record ScheduledItem(String taskId, String resourceId, String startAt, String endAt, List<String> dependencyTaskIds) {
     }
 
     public record ScheduleResult(List<ScheduledItem> items) {

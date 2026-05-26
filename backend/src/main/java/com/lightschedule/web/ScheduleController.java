@@ -61,7 +61,8 @@ public class ScheduleController {
                                 item.resourceId(),
                                 resourceGroupService.getGroupName(item.resourceId()),
                                 item.startAt(),
-                                item.endAt()))
+                                item.endAt(),
+                                item.dependencyTaskIds()))
                         .toList());
 
         if (scheduleDraftService != null) {

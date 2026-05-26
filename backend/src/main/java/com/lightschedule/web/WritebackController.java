@@ -28,7 +28,7 @@ public class WritebackController {
             var result = writebackService.publish(
                     request.draftId(),
                     request.items().stream()
-                            .map(item -> new ScheduledItem(item.taskId(), item.resourceId(), item.startAt(), item.endAt()))
+                            .map(item -> new ScheduledItem(item.taskId(), item.resourceId(), item.startAt(), item.endAt(), item.dependencyTaskIds()))
                             .toList());
             return new PublishResponse(result.draftId(), result.auditId(), result.status(), result.writebackStatus());
         } catch (IllegalStateException exception) {

@@ -30,8 +30,8 @@ class WritebackServiceTest {
         WritebackService service = new WritebackService(new ScheduleValidationService(), mock(WritebackAuditService.class), null, null, new ObjectMapper(), 1);
 
         assertThatThrownBy(() -> service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:00:00Z", List.of())
         )))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("resource_conflict");
@@ -46,7 +46,7 @@ class WritebackServiceTest {
         WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         assertThat(result.draftId()).isEqualTo("draft-1");
@@ -75,7 +75,7 @@ class WritebackServiceTest {
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         verify(writebackClient).writeback(any(KingdeeWritebackPayload.class));
@@ -101,7 +101,7 @@ class WritebackServiceTest {
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         verify(writebackClient, never()).writeback(any(KingdeeWritebackPayload.class));
@@ -133,7 +133,7 @@ class WritebackServiceTest {
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         assertThat(result.writebackStatus()).isEqualTo("TERMINAL_FAILED");
@@ -167,7 +167,7 @@ class WritebackServiceTest {
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         assertThat(result.writebackStatus()).isEqualTo("RETRYABLE_FAILED");
@@ -194,7 +194,7 @@ class WritebackServiceTest {
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of())
         ));
 
         assertThat(result.writebackStatus()).isEqualTo("RETRYABLE_FAILED");

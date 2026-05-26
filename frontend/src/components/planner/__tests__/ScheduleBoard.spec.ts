@@ -622,4 +622,35 @@ describe('ScheduleBoard', () => {
     await wrapper.find('[data-testid="schedule-filter-clear"]').trigger('click')
     expect((input.element as HTMLInputElement).value).toBe('')
   })
+
+  it('甘特图视图显示任务依赖连线', async () => {
+    const wrapper = mount(ScheduleBoard, {
+      props: {
+        items: [
+          {
+            taskId: 'TASK-001',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T08:00:00Z',
+            endAt: '2026-04-24T10:00:00Z'
+          },
+          {
+            taskId: 'TASK-002',
+            resourceId: 'LINE-A',
+            resourceGroupName: '冲压组',
+            startAt: '2026-04-24T10:00:00Z',
+            endAt: '2026-04-24T11:30:00Z',
+            dependencyTaskIds: ['TASK-001']
+          }
+        ]
+      }
+    })
+
+    await wrapper.find('[data-testid="view-mode-gantt"]').trigger('click')
+
+    const svg = wrapper.find('.schedule-board__gantt-svg')
+    expect(svg.exists()).toBe(true)
+    const paths = svg.findAll('path')
+    expect(paths.length).toBeGreaterThan(0)
+  })
 })

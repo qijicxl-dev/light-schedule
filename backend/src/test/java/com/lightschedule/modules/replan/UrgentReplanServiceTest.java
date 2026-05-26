@@ -54,9 +54,9 @@ class UrgentReplanServiceTest {
                 new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:30:00Z"),
-                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:30:00Z", List.of()),
+                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z", List.of())
         ));
 
         assertThat(result.affectedTaskIds()).containsExactly("TASK-001", "TASK-002");
@@ -73,8 +73,8 @@ class UrgentReplanServiceTest {
                 new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-002", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z", List.of())
         ));
 
         assertThat(result.affectedTaskIds()).isEmpty();
@@ -88,9 +88,9 @@ class UrgentReplanServiceTest {
                 new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T10:00:00Z", "2026-04-24T11:30:00Z"),
-                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T10:00:00Z", "2026-04-24T11:30:00Z", List.of()),
+                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z", List.of())
         ));
 
         assertThat(result.affectedTaskIds()).isEmpty();
@@ -104,9 +104,9 @@ class UrgentReplanServiceTest {
                 new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-URGENT", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T10:30:00Z"),
-                new ScheduledItem("TASK-002", "LINE-B", "2026-04-24T10:30:00Z", "2026-04-24T12:00:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-URGENT", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T10:30:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-B", "2026-04-24T10:30:00Z", "2026-04-24T12:00:00Z", List.of())
         ));
 
         assertThat(result.affectedTaskIds()).containsExactly("TASK-001", "TASK-URGENT", "TASK-002");
@@ -119,10 +119,10 @@ class UrgentReplanServiceTest {
                 new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
-                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:30:00Z"),
-                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z"),
-                new ScheduledItem("TASK-004", "LINE-B", "2026-04-24T09:00:00Z", "2026-04-24T10:30:00Z")
+                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z", List.of()),
+                new ScheduledItem("TASK-002", "LINE-A", "2026-04-24T09:30:00Z", "2026-04-24T11:30:00Z", List.of()),
+                new ScheduledItem("TASK-003", "LINE-B", "2026-04-24T08:30:00Z", "2026-04-24T09:30:00Z", List.of()),
+                new ScheduledItem("TASK-004", "LINE-B", "2026-04-24T09:00:00Z", "2026-04-24T10:30:00Z", List.of())
         ));
 
         assertThat(result.suggestions().stream().map(SuggestionService.Suggestion::action))
