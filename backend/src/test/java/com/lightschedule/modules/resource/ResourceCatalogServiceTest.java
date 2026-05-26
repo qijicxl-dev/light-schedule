@@ -31,14 +31,6 @@ class ResourceCatalogServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyListWhenMapperIsNull() {
-        ResourceCatalogService service = new ResourceCatalogService(null);
-        List<ResourceCatalogService.ResourceDefinition> resources = service.list();
-
-        assertThat(resources).isEmpty();
-    }
-
-    @Test
     void shouldReturnEmptyListWhenMapperReturnsEmptyList() {
         ResourceMapper mapper = mock(ResourceMapper.class);
         when(mapper.selectList(null)).thenReturn(List.of());

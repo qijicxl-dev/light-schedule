@@ -16,9 +16,6 @@ public class ResourceCatalogService {
     }
 
     public List<ResourceDefinition> list() {
-        if (resourceMapper == null) {
-            return List.of();
-        }
         List<ResourceEntity> entities = resourceMapper.selectList(null);
         if (entities == null || entities.isEmpty()) {
             return List.of();
@@ -47,9 +44,6 @@ public class ResourceCatalogService {
     }
 
     public ResourceDefinition save(String resourceId, String groupName, boolean defaultPlanner) {
-        if (resourceMapper == null) {
-            return new ResourceDefinition(resourceId, groupName, defaultPlanner);
-        }
         ResourceEntity entity = new ResourceEntity();
         entity.setId(UUID.randomUUID().toString().replace("-", ""));
         entity.setResourceId(resourceId);
@@ -60,9 +54,6 @@ public class ResourceCatalogService {
     }
 
     public ResourceDefinition update(String resourceId, String groupName, boolean defaultPlanner) {
-        if (resourceMapper == null) {
-            throw new NoSuchElementException("resource not found: " + resourceId);
-        }
         ResourceEntity existing = resourceMapper.selectOne(
                 new QueryWrapper<ResourceEntity>().eq("resource_id", resourceId));
         if (existing == null) {
@@ -75,9 +66,6 @@ public class ResourceCatalogService {
     }
 
     public void delete(String resourceId) {
-        if (resourceMapper == null) {
-            return;
-        }
         resourceMapper.delete(new QueryWrapper<ResourceEntity>().eq("resource_id", resourceId));
     }
 
