@@ -26,26 +26,6 @@ public class WritebackService {
     private final ObjectMapper objectMapper;
     private final int maxAttempts;
 
-    public WritebackService(ScheduleValidationService scheduleValidationService) {
-        this(scheduleValidationService, null, null, null, new ObjectMapper(), 1);
-    }
-
-    public WritebackService(
-            ScheduleValidationService scheduleValidationService,
-            WritebackAuditService writebackAuditService,
-            int maxAttempts) {
-        this(scheduleValidationService, writebackAuditService, null, null, new ObjectMapper(), maxAttempts);
-    }
-
-    public WritebackService(
-            ScheduleValidationService scheduleValidationService,
-            WritebackAuditService writebackAuditService,
-            KingdeeWritebackClient kingdeeWritebackClient,
-            KingdeeWritebackPayloadMapper kingdeeWritebackPayloadMapper,
-            int maxAttempts) {
-        this(scheduleValidationService, writebackAuditService, kingdeeWritebackClient, kingdeeWritebackPayloadMapper, new ObjectMapper(), maxAttempts);
-    }
-
     @Autowired
     public WritebackService(
             ScheduleValidationService scheduleValidationService,
@@ -84,19 +64,6 @@ public class WritebackService {
             throw new IllegalStateException(String.join(",", blockingIssues));
         }
 
-        if (writebackAuditService == null) {
-            return new PublishResult(draftId, null, "validated", "pending");
-        }
-
-        if (kingdeeWritebackClient == null || kingdeeWritebackPayloadMapper == null) {
-            try {
-                WritebackAuditEntity audit = writebackAuditService.createQueuedAudit(draftId, draftId, maxAttempts);
-                return new PublishResult(draftId, audit.getId(), "validated", "pending");
-            } catch (RuntimeException exception) {
-                return new PublishResult(draftId, null, "validated", "pending");
-            }
-        }
-
         var payload = kingdeeWritebackPayloadMapper.map(draftId, items);
         WritebackAuditEntity audit;
         try {
@@ -126,10 +93,6 @@ public class WritebackService {
     }
 
     public void retryAudit(WritebackAuditEntity audit) {
-        if (kingdeeWritebackClient == null || kingdeeWritebackPayloadMapper == null || writebackAuditService == null) {
-            return;
-        }
-
         KingdeeWritebackPayload payload;
         try {
             payload = readPayload(audit.getPayloadJson());
@@ -157,10 +120,6 @@ public class WritebackService {
     }
 
     public WritebackStatus status(String auditId) {
-        if (writebackAuditService == null) {
-            return new WritebackStatus(auditId, "draft-1", "validated", "submitted", "queued", false, 1, maxAttempts, null);
-        }
-
         WritebackAuditEntity audit = writebackAuditService.getById(auditId);
         if (audit == null) {
             throw new NoSuchElementException("writeback audit not found");

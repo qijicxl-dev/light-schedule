@@ -25,16 +25,16 @@ public class PlannerScenarioService {
 
     public PlannerScenario loadDefaultScenario(String startAt, String draftId) {
         List<String> defaultResourceIds = resourceCatalogService.listDefaultPlannerResourceIds();
-        String primaryResourceId = defaultResourceIds.isEmpty() ? "LINE-A" : defaultResourceIds.getFirst();
+        if (defaultResourceIds.isEmpty()) {
+            return new PlannerScenario(List.of(), List.of(), startAt, draftId);
+        }
+        String primaryResourceId = defaultResourceIds.getFirst();
 
-        List<WorkOrder> workOrders = workOrderService != null
-                ? workOrderService.loadAll()
-                : List.of(new WorkOrder("WO-001", "released", 20, "2026-04-24T08:00:00Z", "ROUTE-01", false, List.of(), "low"));
-
+        List<WorkOrder> workOrders = workOrderService.loadAll();
         List<String> routeIds = workOrders.stream().map(WorkOrder::routeId).distinct().toList();
-        List<PlannerTask> tasks = routeStepService != null
-                ? distributeTasksAcrossResources(routeStepService.loadTasksForRouteIds(routeIds, primaryResourceId), defaultResourceIds)
-                : defaultFallbackTasks(primaryResourceId);
+        List<PlannerTask> tasks = distributeTasksAcrossResources(
+                routeStepService.loadTasksForRouteIds(routeIds, primaryResourceId),
+                defaultResourceIds);
 
         return new PlannerScenario(
                 workOrders.stream()
@@ -88,12 +88,6 @@ public class PlannerScenarioService {
             }
         }
         return null;
-    }
-
-    private List<PlannerTask> defaultFallbackTasks(String primaryResourceId) {
-        return List.of(
-                new PlannerTask("TASK-001", primaryResourceId, 120, List.of()),
-                new PlannerTask("TASK-002", primaryResourceId, 90, List.of("TASK-001")));
     }
 
     public record PlannerScenario(

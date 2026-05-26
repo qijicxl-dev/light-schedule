@@ -8,12 +8,30 @@ import com.lightschedule.modules.resource.ResourceCatalogService;
 import com.lightschedule.modules.resource.ResourceEntity;
 import com.lightschedule.modules.resource.ResourceGroupService;
 import com.lightschedule.modules.resource.ResourceMapper;
+import com.lightschedule.domain.model.WorkOrder;
 import com.lightschedule.modules.scheduling.InitialSchedulingService;
 import com.lightschedule.modules.scheduling.PlannerScenarioService;
+import com.lightschedule.modules.scheduling.RouteStepService;
+import com.lightschedule.modules.taskpool.WorkOrderService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class CapacityAnalysisOverviewServiceTest {
+
+    private static WorkOrderService workOrderServiceWithMockData() {
+        WorkOrderService service = mock(WorkOrderService.class);
+        when(service.loadAll()).thenReturn(List.of(
+                new WorkOrder("WO-001", "released", 20, "2026-04-24T08:00:00Z", "ROUTE-01", false, List.of(), "low")));
+        return service;
+    }
+
+    private static RouteStepService routeStepServiceWithMockData() {
+        RouteStepService service = mock(RouteStepService.class);
+        when(service.loadTasksForRouteIds(List.of("ROUTE-01"), "LINE-A")).thenReturn(List.of(
+                new PlannerScenarioService.PlannerTask("TASK-001", "LINE-A", 120, List.of()),
+                new PlannerScenarioService.PlannerTask("TASK-002", "LINE-A", 90, List.of("TASK-001"))));
+        return service;
+    }
 
     private static ResourceCatalogService catalogWithMockData() {
         ResourceMapper mapper = mock(ResourceMapper.class);
@@ -38,7 +56,7 @@ class CapacityAnalysisOverviewServiceTest {
                         new CapacityBucketService(),
                         new ResourceGroupService(resourceCatalogService),
                         resourceCatalogService,
-                        new PlannerScenarioService(resourceCatalogService, null, null),
+                        new PlannerScenarioService(resourceCatalogService, workOrderServiceWithMockData(), routeStepServiceWithMockData()),
                         new InitialSchedulingService());
 
         CapacityAnalysisOverviewService.CapacityAnalysisOverview overview = service.buildOverview();

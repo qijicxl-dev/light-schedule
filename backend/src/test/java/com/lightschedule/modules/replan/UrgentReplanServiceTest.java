@@ -9,11 +9,29 @@ import com.lightschedule.modules.resource.ResourceEntity;
 import com.lightschedule.modules.resource.ResourceGroupService;
 import com.lightschedule.modules.resource.ResourceMapper;
 import com.lightschedule.modules.scheduling.InitialSchedulingService.ScheduledItem;
+import com.lightschedule.domain.model.WorkOrder;
 import com.lightschedule.modules.scheduling.PlannerScenarioService;
+import com.lightschedule.modules.scheduling.RouteStepService;
+import com.lightschedule.modules.taskpool.WorkOrderService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class UrgentReplanServiceTest {
+
+    private static WorkOrderService workOrderServiceWithMockData() {
+        WorkOrderService service = mock(WorkOrderService.class);
+        when(service.loadAll()).thenReturn(List.of(
+                new WorkOrder("WO-001", "released", 20, "2026-04-24T08:00:00Z", "ROUTE-01", false, List.of(), "low")));
+        return service;
+    }
+
+    private static RouteStepService routeStepServiceWithMockData() {
+        RouteStepService service = mock(RouteStepService.class);
+        when(service.loadTasksForRouteIds(List.of("ROUTE-01"), "LINE-A")).thenReturn(List.of(
+                new PlannerScenarioService.PlannerTask("TASK-001", "LINE-A", 120, List.of()),
+                new PlannerScenarioService.PlannerTask("TASK-002", "LINE-A", 90, List.of("TASK-001"))));
+        return service;
+    }
 
     private static ResourceCatalogService catalogWithMockData() {
         ResourceMapper mapper = mock(ResourceMapper.class);
@@ -33,7 +51,7 @@ class UrgentReplanServiceTest {
     void shouldReturnSameGroupSuggestionForSingleOverloadedResource() {
         UrgentReplanService service = new UrgentReplanService(
                 new SuggestionService(new ResourceGroupService(catalogWithMockData())),
-                new PlannerScenarioService(catalogWithMockData(), null, null));
+                new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
@@ -52,7 +70,7 @@ class UrgentReplanServiceTest {
     void shouldNotSuggestReplanWhenNoResourceIsRepeated() {
         UrgentReplanService service = new UrgentReplanService(
                 new SuggestionService(new ResourceGroupService(catalogWithMockData())),
-                new PlannerScenarioService(catalogWithMockData(), null, null));
+                new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
@@ -67,7 +85,7 @@ class UrgentReplanServiceTest {
     void shouldNotTreatSequentialTasksOnSameResourceAsOverloaded() {
         UrgentReplanService service = new UrgentReplanService(
                 new SuggestionService(new ResourceGroupService(catalogWithMockData())),
-                new PlannerScenarioService(catalogWithMockData(), null, null));
+                new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
@@ -83,7 +101,7 @@ class UrgentReplanServiceTest {
     void shouldIncludeDependentTasksWhenUpstreamTaskIsDirectlyImpacted() {
         UrgentReplanService service = new UrgentReplanService(
                 new SuggestionService(new ResourceGroupService(catalogWithMockData())),
-                new PlannerScenarioService(catalogWithMockData(), null, null));
+                new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
@@ -98,7 +116,7 @@ class UrgentReplanServiceTest {
     void shouldEscalateSuggestionsWhenMultipleResourcesAreOverloaded() {
         UrgentReplanService service = new UrgentReplanService(
                 new SuggestionService(new ResourceGroupService(catalogWithMockData())),
-                new PlannerScenarioService(catalogWithMockData(), null, null));
+                new PlannerScenarioService(catalogWithMockData(), workOrderServiceWithMockData(), routeStepServiceWithMockData()));
 
         var result = service.replan("WO-URGENT-001", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),

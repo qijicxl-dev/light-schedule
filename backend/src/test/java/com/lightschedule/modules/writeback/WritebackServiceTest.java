@@ -16,6 +16,7 @@ import com.lightschedule.integration.kingdee.KingdeeWritebackPayloadMapper;
 import com.lightschedule.integration.kingdee.KingdeeWritebackResult;
 import com.lightschedule.integration.kingdee.KingdeeWritebackStatusResult;
 import com.lightschedule.modules.scheduling.InitialSchedulingService.ScheduledItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightschedule.modules.validation.ScheduleValidationService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +27,7 @@ class WritebackServiceTest {
 
     @Test
     void shouldBlockPublishWhenScheduledItemsContainResourceConflict() {
-        WritebackService service = new WritebackService(new ScheduleValidationService());
+        WritebackService service = new WritebackService(new ScheduleValidationService(), mock(WritebackAuditService.class), null, null, new ObjectMapper(), 1);
 
         assertThatThrownBy(() -> service.publish("draft-1", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z"),
@@ -37,30 +38,12 @@ class WritebackServiceTest {
     }
 
     @Test
-    void shouldCreateQueuedAuditBeforeReturningPublishResult() {
-        WritebackAuditService auditService = mock(WritebackAuditService.class);
-        WritebackAuditEntity queuedAudit = new WritebackAuditEntity();
-        queuedAudit.setId("audit-1");
-        when(auditService.createQueuedAudit(eq("draft-1"), eq("draft-1"), anyInt())).thenReturn(queuedAudit);
-
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
-
-        WritebackService.PublishResult result = service.publish("draft-1", List.of(
-                new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
-        ));
-
-        verify(auditService).createQueuedAudit("draft-1", "draft-1", 3);
-        assertThat(result.draftId()).isEqualTo("draft-1");
-        assertThat(result.writebackStatus()).isEqualTo("pending");
-    }
-
-    @Test
     void shouldFallbackToPendingPublishWhenAuditPersistenceFails() {
         WritebackAuditService auditService = mock(WritebackAuditService.class);
-        when(auditService.createQueuedAudit(eq("draft-1"), eq("draft-1"), anyInt()))
+        when(auditService.createQueuedAudit(eq("draft-1"), any(), anyInt()))
                 .thenThrow(new IllegalStateException("db unavailable"));
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
                 new ScheduledItem("TASK-001", "LINE-A", "2026-04-24T08:00:00Z", "2026-04-24T10:00:00Z")
@@ -88,6 +71,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
@@ -113,6 +97,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
@@ -144,6 +129,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
@@ -177,6 +163,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
@@ -203,6 +190,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.PublishResult result = service.publish("draft-1", List.of(
@@ -237,6 +225,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         service.retryAudit(audit);
@@ -265,6 +254,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         service.retryAudit(audit);
@@ -292,6 +282,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         service.retryAudit(audit);
@@ -319,6 +310,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         service.retryAudit(audit);
@@ -350,6 +342,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 4);
 
         service.retryAudit(audit);
@@ -377,6 +370,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         service.retryAudit(audit);
@@ -402,7 +396,7 @@ class WritebackServiceTest {
         audit.setMaxAttempts(3);
         when(auditService.getById("audit-1")).thenReturn(audit);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.WritebackStatus status = service.status("audit-1");
 
@@ -425,7 +419,7 @@ class WritebackServiceTest {
         audit.setExternalRequestId("REQ-1");
         when(auditService.getById("audit-1")).thenReturn(audit);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.WritebackStatus status = service.status("audit-1");
 
@@ -448,7 +442,7 @@ class WritebackServiceTest {
         audit.setExternalRequestId(null);
         when(auditService.getById("audit-1")).thenReturn(audit);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.WritebackStatus status = service.status("audit-1");
 
@@ -481,6 +475,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.WritebackStatus status = service.status("audit-2");
@@ -513,6 +508,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.WritebackStatus status = service.status("audit-2");
@@ -544,6 +540,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.WritebackStatus status = service.status("audit-2");
@@ -577,6 +574,7 @@ class WritebackServiceTest {
                 auditService,
                 writebackClient,
                 new KingdeeWritebackPayloadMapper(),
+                new ObjectMapper(),
                 3);
 
         WritebackService.WritebackStatus status = service.status("audit-2");
@@ -599,7 +597,7 @@ class WritebackServiceTest {
         audit.setMaxAttempts(3);
         when(auditService.getById("audit-2")).thenReturn(audit);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.WritebackStatus status = service.status("audit-2");
 
@@ -612,7 +610,7 @@ class WritebackServiceTest {
         WritebackAuditService auditService = mock(WritebackAuditService.class);
         when(auditService.getById("missing-audit")).thenReturn(null);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         assertThatThrownBy(() -> service.status("missing-audit"))
                 .isInstanceOf(NoSuchElementException.class)
@@ -633,7 +631,7 @@ class WritebackServiceTest {
         audit.setNextRetryAt(LocalDateTime.parse("2026-04-24T10:30:00"));
         when(auditService.getById("audit-1")).thenReturn(audit);
 
-        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, 3);
+        WritebackService service = new WritebackService(new ScheduleValidationService(), auditService, null, new KingdeeWritebackPayloadMapper(), new ObjectMapper(), 3);
 
         WritebackService.WritebackStatus status = service.status("audit-1");
 
